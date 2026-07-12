@@ -1,0 +1,8 @@
+
+--- DPI Divergence Analysis ---
+DPI  72: Identical
+DPI 100: Identical
+DPI 150: Identical
+
+Result: Visually identical.
+No differences in page 1

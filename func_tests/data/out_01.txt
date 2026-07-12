@@ -1,0 +1,6 @@
+
+--- DPI Divergence Analysis ---
+DPI  72: DIFFERENCES FOUND
+
+Result: PDFs start to differ at DPI 72.
+Has differences in page 1
