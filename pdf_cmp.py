@@ -37,7 +37,8 @@ def find_symmetric_difference(ink1, ink2):
 
 
 def filter_small_blobs(diff_mask):
-    labeled, num_features = ndimage.label(diff_mask)
+    struct = ndimage.generate_binary_structure(2, 2)
+    labeled, num_features = ndimage.label(diff_mask, structure=struct)
     if num_features == 0:
         return diff_mask
     sizes = ndimage.sum(diff_mask, labeled, range(1, num_features + 1))
@@ -64,6 +65,7 @@ def get_diff_mask(pix1, pix2):
     img2 = Image.frombytes(COLORSPACE, (pix2.width, pix2.height), pix2.samples)
 
     if img1.size != img2.size:
+        print("Warning: page size mismatch! Page is Resized!")
         img1 = img1.resize(img2.size, Image.BILINEAR)
 
     gray1 = np.array(img1.convert("L"), dtype=np.uint8)
@@ -148,4 +150,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
