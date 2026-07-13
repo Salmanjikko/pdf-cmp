@@ -19,6 +19,39 @@ MIN_BLOB_SIZE = 15
 TEST_DPIS = [72, 100, 150]
 
 
+def binarize(gray):
+    return gray < INK_THRESHOLD
+
+
+def dilate_ink(ink):
+    struct = ndimage.generate_binary_structure(2, 2)
+    return ndimage.binary_dilation(ink, structure=struct, iterations=EDGE_TOLERANCE)
+
+
+def find_symmetric_difference(ink1, ink2):
+    ink1_dilated = dilate_ink(ink1)
+    ink2_dilated = dilate_ink(ink2)
+    added_ink = ink2 & ~ink1_dilated
+    removed_ink = ink1 & ~ink2_dilated
+    return added_ink | removed_ink
+
+
+def filter_small_blobs(diff_mask):
+    labeled, num_features = ndimage.label(diff_mask)
+    if num_features == 0:
+        return diff_mask
+    sizes = ndimage.sum(diff_mask, labeled, range(1, num_features + 1))
+    keep_labels = np.where(sizes >= MIN_BLOB_SIZE)[0] + 1
+    return np.isin(labeled, keep_labels)
+
+
+def get_diff_mask_from_arrays(gray1, gray2):
+    ink1 = binarize(gray1)
+    ink2 = binarize(gray2)
+    diff_mask = find_symmetric_difference(ink1, ink2)
+    return filter_small_blobs(diff_mask)
+
+
 def generate_output_filename(pdf1_path, pdf2_path):
     pdf1_name = os.path.splitext(os.path.basename(pdf1_path))[0]
     pdf2_name = os.path.splitext(os.path.basename(pdf2_path))[0]
@@ -35,22 +68,8 @@ def get_diff_mask(pix1, pix2):
 
     gray1 = np.array(img1.convert("L"), dtype=np.uint8)
     gray2 = np.array(img2.convert("L"), dtype=np.uint8)
-    ink1 = gray1 < INK_THRESHOLD
-    ink2 = gray2 < INK_THRESHOLD
 
-    struct = ndimage.generate_binary_structure(2, 2)
-    ink1_dilated = ndimage.binary_dilation(ink1, structure=struct, iterations=EDGE_TOLERANCE)
-    ink2_dilated = ndimage.binary_dilation(ink2, structure=struct, iterations=EDGE_TOLERANCE)
-
-    added_ink = ink2 & ~ink1_dilated
-    removed_ink = ink1 & ~ink2_dilated
-    diff_mask = added_ink | removed_ink
-
-    labeled, num_features = ndimage.label(diff_mask)
-    if num_features > 0:
-        sizes = ndimage.sum(diff_mask, labeled, range(1, num_features + 1))
-        keep_labels = np.where(sizes >= MIN_BLOB_SIZE)[0] + 1
-        diff_mask = np.isin(labeled, keep_labels)
+    diff_mask = get_diff_mask_from_arrays(gray1, gray2)
 
     return diff_mask, img2
 
@@ -125,7 +144,8 @@ def main():
     output_doc.close()
     doc1.close()
     doc2.close()
-    
+
 
 if __name__ == "__main__":
     main()
+    
